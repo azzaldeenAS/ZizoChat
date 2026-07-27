@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.chat-bg-light {
+  background-color: #EFEAE2;
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4cdc4' fill-opacity='0.35'%3E%3Cpath d='M20 20c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm60 30c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5-2.5 5.5-5.5 5.5-5.5-2.5-5.5-5.5zM30 90c0-4 3-7 7-7s7 3 7 7-3 7-7 7-7-3-7-7zm100-50c0-6 5-11 11-11s11 5 11 11-5 11-11 11-11-5-11-11zm40 80c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5-2 4.5-4.5 4.5-4.5-2-4.5-4.5zM120 150c0-3.5 3-6.5 6.5-6.5s6.5 3 6.5 6.5-3 6.5-6.5 6.5-6.5-3-6.5-6.5zM50 170c0-2 1.5-3.5 3.5-3.5s3.5 1.5 3.5 3.5-1.5 3.5-3.5 3.5-3.5-1.5-3.5-3.5zm130-130c0-4.5 3.5-8 8-8s8 3.5 8 8-3.5 8-8 8-8-3.5-8-8z'/%3E%3Cpath d='M80 110l4-6 5 4 6-10 5 8 7-12' stroke='%23d4cdc4' stroke-opacity='0.3' fill='none' stroke-width='1.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.chat-bg-dark {
+  background-color: #0B141A;
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23222c33' fill-opacity='0.5'%3E%3Cpath d='M20 20c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm60 30c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5-2.5 5.5-5.5 5.5-5.5-2.5-5.5-5.5zM30 90c0-4 3-7 7-7s7 3 7 7-3 7-7 7-7-3-7-7zm100-50c0-6 5-11 11-11s11 5 11 11-5 11-11 11-11-5-11-11zm40 80c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5-2 4.5-4.5 4.5-4.5-2-4.5-4.5zM120 150c0-3.5 3-6.5 6.5-6.5s6.5 3 6.5 6.5-3 6.5-6.5 6.5-6.5-3-6.5-6.5zM50 170c0-2 1.5-3.5 3.5-3.5s3.5 1.5 3.5 3.5-1.5 3.5-3.5 3.5-3.5-1.5-3.5-3.5zm130-130c0-4.5 3.5-8 8-8s8 3.5 8 8-3.5 8-8 8-8-3.5-8-8z'/%3E%3Cpath d='M80 110l4-6 5 4 6-10 5 8 7-12' stroke='%23222c33' stroke-opacity='0.4' fill='none' stroke-width='1.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(134, 150, 160, 0.4);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(134, 150, 160, 0.6);
+}
+
+@keyframes qrShimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+.qr-shimmer {
+  animation: qrShimmer 1.6s ease-in-out infinite;
+}
+
+.wave-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.reaction-pop {
+  animation: scaleIn 0.14s ease-out;
+}
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.bubble-tail-out::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-top-color: inherit;
+  border-right: 0;
+  border-bottom: 0;
+}
+.bubble-tail-in::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-top-color: inherit;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+@keyframes scanLine {
+  0% { top: 12px; }
+  100% { top: calc(100% - 12px); }
+}
+
+input[type='range'].voice-speed {
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.3);
+  outline: none;
+}
+input[type='range'].voice-speed::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
