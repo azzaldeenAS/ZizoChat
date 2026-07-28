@@ -1,5 +1,4 @@
 export type MessageStatus = 'sent' | 'delivered' | 'read';
-
 export type MessageType = 'text' | 'voice' | 'image' | 'poll' | 'system';
 
 export interface Reaction {
@@ -17,6 +16,8 @@ export interface Message {
   id: string;
   chatId: string;
   senderId: string;
+  senderName?: string;
+  senderAvatar?: string;
   type: MessageType;
   text?: string;
   time: string;
@@ -24,19 +25,9 @@ export interface Message {
   status: MessageStatus;
   reactions: Reaction[];
   replyToId?: string;
-  voice?: {
-    duration: number;
-    waveform: number[];
-    speed: 1 | 1.5 | 2;
-  };
-  image?: {
-    url: string;
-    caption?: string;
-  };
-  poll?: {
-    question: string;
-    options: PollOption[];
-  };
+  voice?: { duration: number; waveform: number[]; speed: 1 | 1.5 | 2 };
+  image?: { url: string; caption?: string };
+  poll?: { question: string; options: PollOption[] };
 }
 
 export interface Contact {
@@ -64,3 +55,12 @@ export interface Chat {
 }
 
 export type Theme = 'light' | 'dark';
+
+export interface IncomingCallInfo {
+  callerId: string;
+  callerSocketId: string;
+  callerName: string;
+  callerAvatar: string;
+  callType: 'voice' | 'video';
+  offer: RTCSessionDescriptionInit;
+}

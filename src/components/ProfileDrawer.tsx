@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { useApp, CURRENT_USER } from '@/store';
+import { useApp } from '@/store';
 import { Drawer } from './ui';
 import { X, Pencil, Check } from 'lucide-react';
 
 export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { theme } = useApp();
+  const { currentUser } = useApp();
   const [editingName, setEditingName] = useState(false);
   const [editingAbout, setEditingAbout] = useState(false);
-  const [name, setName] = useState(CURRENT_USER.name);
-  const [about, setAbout] = useState(CURRENT_USER.about);
+  const [name, setName] = useState(currentUser?.name ?? '');
+  const [about, setAbout] = useState(currentUser?.about ?? '');
 
   return (
     <Drawer open={open} onClose={onClose} side="right" width="w-[380px]">
@@ -24,13 +24,13 @@ export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () =>
       <div className="flex flex-col items-center py-8 bg-wa-panel dark:bg-wa-panelDark shrink-0">
         <div className="relative">
           <img
-            src={CURRENT_USER.avatar}
+            src={currentUser?.avatar || ''}
             alt="avatar"
             className="w-28 h-28 rounded-full object-cover shadow-md"
           />
         </div>
         <p className="mt-3 text-wa-secondary dark:text-wa-secondaryDark text-xs">
-          {CURRENT_USER.phone}
+          {currentUser?.phone}
         </p>
       </div>
 
@@ -101,7 +101,7 @@ export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () =>
         <div>
           <p className="text-wa-green text-sm mb-1">رقم الهاتف</p>
           <span className="text-wa-text dark:text-wa-textDark text-sm" dir="ltr">
-            {CURRENT_USER.phone}
+            {currentUser?.phone}
           </span>
         </div>
       </div>

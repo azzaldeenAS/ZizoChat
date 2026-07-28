@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useApp, CURRENT_USER } from '@/store';
+import { useApp } from '@/store';
 import { cn, getContact, lastMessageOf, formatLastPreview } from '@/utils';
 import { CopyrightFooter, Menu, MenuItem, Tooltip } from './ui';
 import {
@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
-  const { chats, contacts, messages, activeChatId, setActiveChat, searchQuery, setSearchQuery, theme, toggleTheme, networkOffline, toggleNetwork, logout } = useApp();
+  const { chats, contacts, messages, activeChatId, setActiveChat, searchQuery, setSearchQuery, theme, toggleTheme, networkOffline, toggleNetwork, logout, currentUser } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuBtnRef = useRef<HTMLButtonElement>(null);
@@ -45,7 +45,7 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
 
       <div className="flex items-center justify-between px-4 h-16 bg-wa-header dark:bg-wa-headerDark shrink-0">
         <button onClick={onOpenProfile} className="transition-transform hover:scale-105">
-          <img src={CURRENT_USER.avatar} alt="my avatar" className="w-9 h-9 rounded-full object-cover" />
+          <img src={currentUser?.avatar || ''} alt="my avatar" className="w-9 h-9 rounded-full object-cover bg-wa-header" />
         </button>
         <div className="flex items-center gap-1 text-white">
           <Tooltip label="حالات"><button className="p-2 rounded-full hover:bg-white/10 transition-colors"><CircleDashed className="w-5 h-5" /></button></Tooltip>
