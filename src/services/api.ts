@@ -20,14 +20,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   // Auth
+  googleLogin: (credential: string) =>
+    request<{ token: string; user: ApiUser }>('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
+
   signup: (data: any) =>
-    request<{ token: string; user: ApiUser }>('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
+    request<{ success: boolean; message: string }>('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
+
+  signupVerify: (data: any) =>
+    request<{ token: string; user: ApiUser }>('/auth/signup-verify', { method: 'POST', body: JSON.stringify(data) }),
 
   signin: (data: any) =>
     request<{ token: string; user: ApiUser }>('/auth/signin', { method: 'POST', body: JSON.stringify(data) }),
 
   forgotPassword: (data: any) =>
     request<{ success: boolean; message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  forgotPasswordVerify: (data: any) =>
+    request<{ success: boolean; message: string }>('/auth/forgot-password-verify', { method: 'POST', body: JSON.stringify(data) }),
 
   // Users
   getMe: () => request<ApiUser>('/users/me'),
