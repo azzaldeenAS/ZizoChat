@@ -74,7 +74,7 @@ Before Google Sign-In works, add the Replit domain as an **authorized JavaScript
 1. Go to [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials
 2. Open your OAuth 2.0 client (`108457596196-...`)
 3. Under **Authorized JavaScript origins**, add:
-   `https://a78712e2-94e5-4d25-8efb-083732d4d58b-00-2mrqbixc7sucy.sisko.replit.dev`
+   `https://88f9cf52-4316-40f4-8e24-638bf920c515-00-2uoyhvp7ups9z.pike.replit.dev`
 4. Save and wait ~5 minutes
 
 ## Secrets required
