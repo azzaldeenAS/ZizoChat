@@ -57,4 +57,5 @@ externalPort = 80
 [userenv]
 
 [userenv.shared]
-VITE_GOOGLE_CLIENT_ID = "108457596196-dics4i5qs3084q0ghc6r8pkcpna87t8a.apps.googleusercontent.com"
+VITE_GOOGLE_CLIENT_ID = "1058551993139-uibhrqvuh7mjmbtsu7m8j6oqnter5p7q.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = "1058551993139-uibhrqvuh7mjmbtsu7m8j6oqnter5p7q.apps.googleusercontent.com"
