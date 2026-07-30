@@ -80,7 +80,7 @@ export function Tooltip({ label, children }: { label: string; children: ReactNod
 
 export function CopyrightFooter({ variant = 'login' }: { variant?: 'login' | 'sidebar' }) {
   return (
-    <div className={`text-center text-[11px] leading-relaxed ${variant === 'login' ? 'text-white/70 py-3' : 'text-wa-secondary dark:text-wa-secondaryDark py-2 px-2'} select-none`}>
+    <div className={`text-center text-[11px] leading-relaxed ${variant === 'login' ? 'text-[#8696a0] py-4' : 'text-wa-secondary dark:text-wa-secondaryDark py-2 px-2'} select-none`}>
       حقوق الطبع للمهندس عزالدين الرهمي ورقم الهاتف +967777320031
     </div>
   );
