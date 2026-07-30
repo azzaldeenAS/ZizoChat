@@ -20,6 +20,21 @@ function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// GET /api/auth/test-email
+router.get('/test-email', async (req, res) => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"ZizoChat" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_USER,
+      subject: 'Test Email from Render',
+      text: 'If you see this, email is working on Render.',
+    });
+    res.json({ success: true, info });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, stack: err.stack });
+  }
+});
+
 // POST /api/auth/google
 router.post('/google', async (req, res) => {
   try {
