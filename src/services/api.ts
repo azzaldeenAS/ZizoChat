@@ -20,14 +20,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   // Auth
-  googleLogin: (credential: string) =>
-    request<{ email: string }>('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
+  signup: (data: any) =>
+    request<{ token: string; user: ApiUser }>('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
 
-  verifyOtp: (email: string, code: string) =>
-    request<{ token: string; user: ApiUser }>('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ email, code }) }),
+  signin: (data: any) =>
+    request<{ token: string; user: ApiUser }>('/auth/signin', { method: 'POST', body: JSON.stringify(data) }),
 
-  resendOtp: (email: string) =>
-    request<{ success: boolean }>('/auth/resend-otp', { method: 'POST', body: JSON.stringify({ email }) }),
+  forgotPassword: (data: any) =>
+    request<{ success: boolean; message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // Users
   getMe: () => request<ApiUser>('/users/me'),
