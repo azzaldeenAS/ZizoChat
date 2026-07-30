@@ -44,6 +44,7 @@ module.exports = function setupSocket(server) {
     // Track socket
     if (!userSockets.has(userId)) userSockets.set(userId, new Set());
     userSockets.get(userId).add(socket.id);
+    socket.join(userId.toString()); // Allow targeting by userId
 
     await User.findByIdAndUpdate(userId, { isOnline: true });
     io.emit('user:status', { userId, isOnline: true });

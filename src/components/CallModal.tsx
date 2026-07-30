@@ -54,7 +54,10 @@ export function CallModal({ open, type, contact, onClose, incoming = false, inco
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         const socket = getSocket();
-        const targetSid = callerSocketId ?? contact.id; // fallback for demo
+        // targetSid is either the caller's socket (if we are answering), 
+        // the answerer's socket (if we are the caller and have received the answer),
+        // or the contact's userId as a fallback (backend routes it because we added socket.join(userId)).
+        const targetSid = callerSocketId ?? (pcRef.current as any)?._answererSid ?? contact.id; 
         socket?.emit('call:ice-candidate', { targetSocketId: targetSid, candidate: e.candidate });
       }
     };
