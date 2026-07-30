@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
-  const { chats, contacts, messages, activeChatId, setActiveChat, searchQuery, setSearchQuery, theme, toggleTheme, networkOffline, toggleNetwork, logout, currentUser } = useApp();
+  const { chats, contacts, messages, activeChatId, setActiveChat, searchQuery, setSearchQuery, theme, toggleTheme, networkOffline, toggleNetwork, logout, currentUser, startDirectChat } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuBtnRef = useRef<HTMLButtonElement>(null);
@@ -94,7 +94,7 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
           const chatId = chat ? chat.id : ct.id; // temporary id if no chat exists
           const last = chat ? lastMessageOf(chat.id, messages) : null;
           const active = chat ? chat.id === activeChatId : false;
-          const preview = formatLastPreview(last);
+          const preview = formatLastPreview(last ?? undefined);
           const senderPrefix = last && ct.isGroup && last.senderId !== 'me' ? `${getContact(last.senderId)?.name ?? ''}: ` : '';
           
           return (

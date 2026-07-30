@@ -25,7 +25,12 @@ export interface Message {
   status: MessageStatus;
   reactions: Reaction[];
   replyToId?: string;
-  voice?: { duration: number; waveform: number[]; speed: 1 | 1.5 | 2 };
+  voice?: {
+    duration: number;
+    waveform: number[];
+    speed: 1 | 1.5 | 2;
+    url?: string;
+  };
   image?: { url: string; caption?: string };
   poll?: { question: string; options: PollOption[] };
 }
@@ -40,7 +45,13 @@ export interface Contact {
   isOnline: boolean;
   hasStatus: boolean;
   isAdmin?: boolean;
-  members?: { id: string; name: string; avatar: string; isAdmin: boolean; color: string }[];
+  members?: {
+    id: string;
+    name: string;
+    avatar: string;
+    isAdmin: boolean;
+    color: string;
+  }[];
   lastSeen?: string;
 }
 
@@ -63,4 +74,22 @@ export interface IncomingCallInfo {
   callerAvatar: string;
   callType: 'voice' | 'video';
   offer: RTCSessionDescriptionInit;
+}
+
+export interface GroupCallPeer {
+  peerId: string;
+  socketId: string;
+  name: string;
+  avatar: string;
+  stream: MediaStream | null;
+  pc: RTCPeerConnection | null;
+}
+
+export interface IncomingGroupCallInfo {
+  chatId: string;
+  callType: 'voice' | 'video';
+  callerId: string;
+  callerSocketId: string;
+  callerName: string;
+  callerAvatar: string;
 }

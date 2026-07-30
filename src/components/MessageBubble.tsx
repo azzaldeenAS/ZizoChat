@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Message } from '@/types';
 import { useApp } from '@/store';
-import { cn, getContact, getSenderName, getSenderColor, getGroupMember } from '@/utils';
+import { cn, getSenderName, getSenderColor, getGroupMember, getCurrentUserId } from '@/utils';
 import { QUICK_REACTIONS } from '@/data';
 import {
-  Check, CheckCheck, Play, Pause, Smile, Reply, Trash2, MoreVertical, ChevronDown,
+  Check, CheckCheck, Play, Pause, Smile, Reply, Trash2, MoreVertical,
 } from 'lucide-react';
 
 export function MessageBubble({ msg, isGroup }: { msg: Message; isGroup: boolean }) {
@@ -12,11 +12,11 @@ export function MessageBubble({ msg, isGroup }: { msg: Message; isGroup: boolean
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
-  const out = msg.senderId === 'me';
-  const sender = getContact(msg.senderId);
-  const color = getSenderColor(msg, isGroup);
 
-  const replyTo = msg.replyToId ? messages.find((m) => m.id === msg.replyToId) : undefined;
+  const myId = getCurrentUserId();
+  const out = msg.senderId === myId;
+  const color = getSenderColor(msg, isGroup);
+  const replyTo = msg.replyToId ? messages.find(m => m.id === msg.replyToId) : undefined;
 
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,14 +41,17 @@ export function MessageBubble({ msg, isGroup }: { msg: Message; isGroup: boolean
               : 'bg-wa-bubbleIn dark:bg-wa-bubbleInDark text-wa-text dark:text-wa-textDark rounded-tl-none'
           )}
         >
+          {/* Group sender name + admin badge */}
           {isGroup && !out && (
-            <div className="text-xs font-semibold mb-0.5" style={{ color }}>{getSenderName(msg)}</div>
+            <div className="flex items-center gap-1 mb-0.5">
+              <span className="text-xs font-semibold" style={{ color }}>{getSenderName(msg)}</span>
+              {getGroupMember(msg.chatId, msg.senderId)?.isAdmin && (
+                <span className="text-[9px] bg-wa-light/20 text-wa-light px-1 rounded align-middle">مشرف</span>
+              )}
+            </div>
           )}
 
-          {isGroup && !out && getGroupMember(msg.chatId, msg.senderId)?.isAdmin && (
-            <span className="inline-block ml-1 text-[9px] bg-wa-light/20 text-wa-light px-1 rounded mb-0.5 align-middle">مشرف</span>
-          )}
-
+          {/* Reply preview */}
           {replyTo && (
             <div className="border-r-2 border-wa-light bg-wa-light/10 rounded px-2 py-1 mb-1 text-xs">
               <div className="font-semibold text-wa-light">{getSenderName(replyTo)}</div>
@@ -58,29 +61,45 @@ export function MessageBubble({ msg, isGroup }: { msg: Message; isGroup: boolean
             </div>
           )}
 
+          {/* Message body */}
           {msg.type === 'text' && (
             <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</div>
           )}
           {msg.type === 'image' && msg.image && (
             <div>
-              <img src={msg.image.url} alt="" className="rounded-md max-w-full max-h-72 object-cover" />
+              <img
+                src={msg.image.url}
+                alt=""
+                className="rounded-md max-w-full max-h-72 object-cover cursor-pointer"
+                onClick={() => window.open(msg.image!.url, '_blank')}
+              />
               {msg.image.caption && <div className="text-sm mt-1">{msg.image.caption}</div>}
             </div>
           )}
-          {msg.type === 'voice' && msg.voice && <VoiceMessage msg={msg} />}
+          {msg.type === 'voice' && msg.voice && <VoiceMessage msg={msg} isOut={out} />}
           {msg.type === 'poll' && msg.poll && <PollView msg={msg} />}
 
-          <div className={cn('flex items-center gap-1 mt-0.5 text-[10px]', out ? 'justify-end text-wa-secondary dark:text-wa-secondaryDark' : 'text-wa-secondary dark:text-wa-secondaryDark')}>
+          {/* Time + status */}
+          <div className={cn(
+            'flex items-center gap-1 mt-0.5 text-[10px]',
+            out ? 'justify-end text-wa-secondary dark:text-wa-secondaryDark' : 'text-wa-secondary dark:text-wa-secondaryDark'
+          )}>
             <span>{msg.time}</span>
             {out && (
-              msg.status === 'read' ? <CheckCheck className="w-3.5 h-3.5 text-wa-blue" /> :
-              msg.status === 'delivered' ? <CheckCheck className="w-3.5 h-3.5" /> :
-              <Check className="w-3.5 h-3.5" />
+              msg.status === 'read'
+                ? <CheckCheck className="w-3.5 h-3.5 text-wa-blue" />
+                : msg.status === 'delivered'
+                ? <CheckCheck className="w-3.5 h-3.5" />
+                : <Check className="w-3.5 h-3.5" />
             )}
           </div>
 
+          {/* Reactions */}
           {msg.reactions.length > 0 && (
-            <div className={cn('absolute -bottom-2.5 flex gap-0.5 bg-wa-sidebar dark:bg-wa-panelDark rounded-full px-1 py-0.5 shadow border border-wa-border dark:border-wa-borderDark text-xs', out ? 'left-1' : 'right-1')}>
+            <div className={cn(
+              'absolute -bottom-2.5 flex gap-0.5 bg-wa-sidebar dark:bg-wa-panelDark rounded-full px-1 py-0.5 shadow border border-wa-border dark:border-wa-borderDark text-xs',
+              out ? 'left-1' : 'right-1'
+            )}>
               {msg.reactions.map((r, i) => (
                 <span key={i}>{r.emoji}</span>
               ))}
@@ -88,23 +107,44 @@ export function MessageBubble({ msg, isGroup }: { msg: Message; isGroup: boolean
           )}
         </div>
 
-        <div className={cn('absolute top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-wa-sidebar dark:bg-wa-panelDark rounded-full shadow px-1', out ? '-left-16' : '-right-16')}>
-          <button onClick={() => setShowReactions((s) => !s)} className="p-1 hover:bg-wa-hover dark:hover:bg-wa-hoverDark rounded-full text-wa-secondary dark:text-wa-secondaryDark">
+        {/* Action buttons (appear on hover) */}
+        <div className={cn(
+          'absolute top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-wa-sidebar dark:bg-wa-panelDark rounded-full shadow px-1',
+          out ? '-left-16' : '-right-16'
+        )}>
+          <button
+            onClick={() => setShowReactions(s => !s)}
+            className="p-1 hover:bg-wa-hover dark:hover:bg-wa-hoverDark rounded-full text-wa-secondary dark:text-wa-secondaryDark"
+          >
             <Smile className="w-4 h-4" />
           </button>
-          <button onClick={openMenu} className="p-1 hover:bg-wa-hover dark:hover:bg-wa-hoverDark rounded-full text-wa-secondary dark:text-wa-secondaryDark">
+          <button
+            onClick={openMenu}
+            className="p-1 hover:bg-wa-hover dark:hover:bg-wa-hoverDark rounded-full text-wa-secondary dark:text-wa-secondaryDark"
+          >
             <MoreVertical className="w-4 h-4" />
           </button>
         </div>
 
+        {/* Quick reactions */}
         {showReactions && (
-          <div className={cn('absolute z-30 -top-9 bg-wa-sidebar dark:bg-wa-panelDark rounded-full shadow-lg px-2 py-1 flex gap-1 reaction-pop', out ? 'left-0' : 'right-0')}>
-            {QUICK_REACTIONS.map((e) => (
-              <button key={e} onClick={() => handleQuickReaction(e)} className="text-lg hover:scale-125 transition-transform">{e}</button>
+          <div className={cn(
+            'absolute z-30 -top-9 bg-wa-sidebar dark:bg-wa-panelDark rounded-full shadow-lg px-2 py-1 flex gap-1 reaction-pop',
+            out ? 'left-0' : 'right-0'
+          )}>
+            {QUICK_REACTIONS.map(e => (
+              <button
+                key={e}
+                onClick={() => handleQuickReaction(e)}
+                className="text-lg hover:scale-125 transition-transform"
+              >
+                {e}
+              </button>
             ))}
           </div>
         )}
 
+        {/* Context menu */}
         {showMenu && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
@@ -113,7 +153,10 @@ export function MessageBubble({ msg, isGroup }: { msg: Message; isGroup: boolean
               className="fixed z-40 bg-wa-sidebar dark:bg-wa-panelDark rounded-lg shadow-xl border border-wa-border dark:border-wa-borderDark py-1 min-w-[150px] animate-scale-in origin-top-left"
             >
               <button
-                onClick={() => { setShowMenu(false); window.dispatchEvent(new CustomEvent('zizo-reply', { detail: msg.id })); }}
+                onClick={() => {
+                  setShowMenu(false);
+                  window.dispatchEvent(new CustomEvent('zizo-reply', { detail: msg.id }));
+                }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-wa-hover dark:hover:bg-wa-hoverDark text-wa-text dark:text-wa-textDark"
               >
                 <Reply className="w-4 h-4" /> رد
@@ -140,63 +183,149 @@ export function MessageBubble({ msg, isGroup }: { msg: Message; isGroup: boolean
   );
 }
 
-function VoiceMessage({ msg }: { msg: Message }) {
+// ─── Real audio playback component ───────────────────────────────────────────
+function VoiceMessage({ msg, isOut }: { msg: Message; isOut: boolean }) {
   const { setVoiceSpeed } = useApp();
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const simulIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const voice = msg.voice!;
   const speed = voice.speed;
-  const out = msg.senderId === 'me';
+  const hasUrl = !!(voice.url && voice.url.length > 0);
 
+  // Set up real audio element when URL is available
   useEffect(() => {
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    if (!hasUrl) return;
+
+    const audio = new Audio(voice.url);
+    audio.preload = 'metadata';
+    audio.playbackRate = speed;
+    audioRef.current = audio;
+
+    audio.ontimeupdate = () => {
+      const dur = audio.duration || voice.duration;
+      if (!isFinite(dur) || dur === 0) return;
+      setElapsed(Math.floor(audio.currentTime));
+      setProgress((audio.currentTime / dur) * 100);
+    };
+
+    audio.onended = () => {
+      setPlaying(false);
+      setProgress(0);
+      setElapsed(0);
+    };
+
+    audio.onerror = (e) => {
+      console.warn('VoiceMessage audio error:', e);
+      setPlaying(false);
+    };
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+      audioRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.url]);
+
+  // Keep playback rate in sync
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = speed;
+  }, [speed]);
+
+  // Cleanup simulation interval on unmount
+  useEffect(() => {
+    return () => { if (simulIntervalRef.current) clearInterval(simulIntervalRef.current); };
   }, []);
 
   const toggle = () => {
-    if (playing) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setPlaying(false);
+    if (hasUrl && audioRef.current) {
+      // Real audio playback
+      if (playing) {
+        audioRef.current.pause();
+        setPlaying(false);
+      } else {
+        audioRef.current.playbackRate = speed;
+        audioRef.current.play()
+          .then(() => setPlaying(true))
+          .catch(err => {
+            console.error('Audio play failed:', err);
+            setPlaying(false);
+          });
+      }
     } else {
-      setPlaying(true);
-      const tick = 100 / (voice.duration * (1000 / speed) / 100);
-      timerRef.current = setInterval(() => {
-        setProgress((p) => {
-          if (p >= 100) { if (timerRef.current) clearInterval(timerRef.current); setPlaying(false); return 0; }
-          return p + tick;
-        });
-      }, 100);
+      // Fallback simulation for messages without a stored URL
+      if (playing) {
+        if (simulIntervalRef.current) clearInterval(simulIntervalRef.current);
+        setPlaying(false);
+      } else {
+        setPlaying(true);
+        const totalMs = voice.duration * 1000 / speed;
+        const tickMs = 100;
+        const tickPct = (tickMs / totalMs) * 100;
+        simulIntervalRef.current = setInterval(() => {
+          setProgress(p => {
+            const next = p + tickPct;
+            if (next >= 100) {
+              if (simulIntervalRef.current) clearInterval(simulIntervalRef.current);
+              setPlaying(false);
+              setElapsed(0);
+              return 0;
+            }
+            setElapsed(Math.floor((next / 100) * voice.duration));
+            return next;
+          });
+        }, tickMs);
+      }
     }
   };
 
   const cycleSpeed = () => {
-    const next = speed === 1 ? 1.5 : speed === 1.5 ? 2 : 1;
-    setVoiceSpeed(msg.id, next as 1 | 1.5 | 2);
+    const next: 1 | 1.5 | 2 = speed === 1 ? 1.5 : speed === 1.5 ? 2 : 1;
+    setVoiceSpeed(msg.id, next);
   };
 
-  const played = Math.floor((progress / 100) * voice.waveform.length);
+  const played = Math.floor((progress / 100) * (voice.waveform?.length ?? 0));
   const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const displayTime = playing ? fmt(elapsed) : fmt(voice.duration);
 
   return (
     <div className="flex items-center gap-2 min-w-[220px] py-1">
-      <button onClick={toggle} className={cn('shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white', out ? 'bg-wa-tealDark' : 'bg-wa-light')}>
+      <button
+        onClick={toggle}
+        className={cn(
+          'shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white',
+          isOut ? 'bg-wa-tealDark' : 'bg-wa-light'
+        )}
+      >
         {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
       </button>
+
       <div className="flex-1">
         <div className="flex items-end gap-[2px] h-7">
-          {voice.waveform.map((h, i) => (
+          {(voice.waveform ?? []).map((h, i) => (
             <div
               key={i}
-              className={cn('wave-bar h-full', i < played ? (out ? 'text-wa-dark/60' : 'text-wa-light/70') : (out ? 'text-wa-dark/30' : 'text-wa-secondary/50'))}
-              style={{ height: `${h}px` }}
+              className={cn(
+                'wave-bar rounded-full',
+                i < played
+                  ? (isOut ? 'bg-wa-tealDark/80' : 'bg-wa-light/80')
+                  : (isOut ? 'bg-wa-secondary/40 dark:bg-wa-secondaryDark/40' : 'bg-wa-secondary/40 dark:bg-wa-secondaryDark/40')
+              )}
+              style={{ height: `${h}px`, width: '3px' }}
             />
           ))}
         </div>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-[10px] text-wa-secondary dark:text-wa-secondaryDark">
-            {playing ? fmt(Math.floor((progress / 100) * voice.duration)) : fmt(voice.duration)}
-          </span>
-          <button onClick={cycleSpeed} className="text-[10px] bg-wa-light/20 text-wa-light px-1.5 rounded font-semibold">
+          <span className="text-[10px] text-wa-secondary dark:text-wa-secondaryDark">{displayTime}</span>
+          <button
+            onClick={cycleSpeed}
+            className="text-[10px] bg-wa-light/20 text-wa-light px-1.5 rounded font-semibold hover:bg-wa-light/30 transition-colors"
+          >
             {speed}x
           </button>
         </div>
@@ -205,8 +334,10 @@ function VoiceMessage({ msg }: { msg: Message }) {
   );
 }
 
+// ─── Poll view ────────────────────────────────────────────────────────────────
 function PollView({ msg }: { msg: Message }) {
   const { votePoll } = useApp();
+  const myId = getCurrentUserId();
   const poll = msg.poll!;
   const totalVotes = poll.options.reduce((acc, o) => acc + o.votes.length, 0);
 
@@ -215,9 +346,9 @@ function PollView({ msg }: { msg: Message }) {
       <div className="text-sm font-medium mb-1">{poll.question}</div>
       <div className="text-[10px] text-wa-secondary dark:text-wa-secondaryDark mb-2">استطلاع رأي</div>
       <div className="space-y-2">
-        {poll.options.map((o) => {
+        {poll.options.map(o => {
           const pct = totalVotes > 0 ? Math.round((o.votes.length / totalVotes) * 100) : 0;
-          const voted = o.votes.includes('me');
+          const voted = o.votes.includes(myId);
           return (
             <button
               key={o.id}
@@ -225,17 +356,24 @@ function PollView({ msg }: { msg: Message }) {
               className="w-full text-right relative overflow-hidden rounded border border-wa-border dark:border-wa-borderDark px-2 py-1.5 hover:bg-wa-hover dark:hover:bg-wa-hoverDark transition-colors"
             >
               {voted && (
-                <div className="absolute inset-y-0 right-0 bg-wa-light/15" style={{ width: `${pct}%` }} />
+                <div
+                  className="absolute inset-y-0 right-0 bg-wa-light/15"
+                  style={{ width: `${pct}%` }}
+                />
               )}
               <div className="relative flex items-center justify-between">
                 <span className="text-sm">{o.text}</span>
-                <span className="text-xs text-wa-secondary dark:text-wa-secondaryDark">{voted ? `${pct}%` : `${o.votes.length}`}</span>
+                <span className="text-xs text-wa-secondary dark:text-wa-secondaryDark">
+                  {voted ? `${pct}%` : `${o.votes.length}`}
+                </span>
               </div>
             </button>
           );
         })}
       </div>
-      <div className="text-[10px] text-wa-secondary dark:text-wa-secondaryDark mt-2">إجمالي الأصوات: {totalVotes}</div>
+      <div className="text-[10px] text-wa-secondary dark:text-wa-secondaryDark mt-2">
+        إجمالي الأصوات: {totalVotes}
+      </div>
     </div>
   );
 }

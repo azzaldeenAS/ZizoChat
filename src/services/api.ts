@@ -118,7 +118,7 @@ export interface ApiMessage {
   type: string;
   text?: string;
   replyToId?: string;
-  voice?: { duration: number; waveform: number[]; speed: number };
+  voice?: { duration: number; waveform: number[]; speed: number; url?: string };
   image?: { url: string; caption?: string };
   poll?: { question: string; options: { id: string; text: string; votes: string[] }[] };
   reactions: { emoji: string; by: string }[];

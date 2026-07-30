@@ -2,7 +2,7 @@ import {
   createContext, useContext, useEffect, useRef, useState,
   useCallback, useMemo, type ReactNode,
 } from 'react';
-import type { Message, Chat, Theme, Contact, IncomingCallInfo } from './types';
+import type { Message, Chat, Theme, Contact, IncomingCallInfo, IncomingGroupCallInfo } from './types';
 import { api, type ApiUser, type ApiChat, type ApiMessage } from './services/api';
 import { connectSocket, disconnectSocket, getSocket } from './services/socket';
 import {
@@ -26,7 +26,12 @@ function convertApiMessage(m: ApiMessage): Message {
     reactions: m.reactions,
     replyToId: m.replyToId,
     voice: m.voice
-      ? { duration: m.voice.duration, waveform: m.voice.waveform, speed: (m.voice.speed ?? 1) as 1 | 1.5 | 2 }
+      ? {
+          duration: m.voice.duration,
+          waveform: m.voice.waveform,
+          speed: (m.voice.speed ?? 1) as 1 | 1.5 | 2,
+          url: m.voice.url ?? '',
+        }
       : undefined,
     image: m.image,
     poll: m.poll,
@@ -45,7 +50,10 @@ function buildContactFromChat(chat: ApiChat, myId: string): Contact | null {
       isOnline: false,
       hasStatus: false,
       members: chat.members.map(m => ({
-        id: m.id, name: m.name, avatar: m.avatar, isAdmin: m.isAdmin,
+        id: m.id,
+        name: m.name,
+        avatar: m.avatar,
+        isAdmin: m.isAdmin,
         color: MEMBER_COLORS[hashStr(m.id) % MEMBER_COLORS.length],
       })),
     };
@@ -61,13 +69,24 @@ function buildContactFromChat(chat: ApiChat, myId: string): Contact | null {
     isGroup: false,
     isOnline: other.isOnline,
     hasStatus: false,
-    lastSeen: other.lastSeen ? new Date(other.lastSeen).toLocaleString('ar-YE', { dateStyle: 'short', timeStyle: 'short' }) : '',
+    lastSeen: other.lastSeen
+      ? new Date(other.lastSeen).toLocaleString('ar-YE', { dateStyle: 'short', timeStyle: 'short' })
+      : '',
   };
 }
 
 function buildChatFromApi(ac: ApiChat, myId: string): Chat {
-  const contactId = ac.isGroup ? ac.id : (ac.members.find(m => m.id !== myId)?.id ?? ac.id);
-  return { id: ac.id, contactId, pinned: ac.pinned, muted: ac.muted, archived: ac.archived, unreadCount: 0 };
+  const contactId = ac.isGroup
+    ? ac.id
+    : (ac.members.find(m => m.id !== myId)?.id ?? ac.id);
+  return {
+    id: ac.id,
+    contactId,
+    pinned: ac.pinned,
+    muted: ac.muted,
+    archived: ac.archived,
+    unreadCount: 0,
+  };
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -83,6 +102,7 @@ interface AppState {
   currentUser: ApiUser | null;
   typingUsers: Record<string, string[]>;
   incomingCall: IncomingCallInfo | null;
+  incomingGroupCall: IncomingGroupCallInfo | null;
   // Auth
   loginWithToken: (token: string, user: ApiUser) => Promise<void>;
   logout: () => void;
@@ -93,7 +113,7 @@ interface AppState {
   toggleNetwork: () => void;
   // Messaging
   sendMessage: (chatId: string, text: string, replyToId?: string) => void;
-  sendVoiceMessage: (chatId: string, duration: number, waveform: number[], replyToId?: string) => void;
+  sendVoiceMessage: (chatId: string, duration: number, waveform: number[], url: string, replyToId?: string) => void;
   sendImageMessage: (chatId: string, url: string, caption?: string, replyToId?: string) => void;
   sendPoll: (chatId: string, question: string, options: string[]) => void;
   votePoll: (messageId: string, optionId: string) => void;
@@ -108,6 +128,7 @@ interface AppState {
   startDirectChat: (targetUserId: string) => Promise<string>;
   // Calls
   dismissIncomingCall: () => void;
+  dismissIncomingGroupCall: () => void;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -132,6 +153,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
   const [incomingCall, setIncomingCall] = useState<IncomingCallInfo | null>(null);
+  const [incomingGroupCall, setIncomingGroupCall] = useState<IncomingGroupCallInfo | null>(null);
+
   const loadedChatIds = useRef<Set<string>>(new Set());
   const activeChatIdRef = useRef<string | null>(null);
   activeChatIdRef.current = activeChatId;
@@ -164,20 +187,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setCurrentUser(user);
     setCurrentUserCache({
-      id: user.id, name: user.name, avatar: user.avatar, about: user.about,
-      phone: user.phone, isGroup: false, isOnline: true, hasStatus: false,
+      id: user.id,
+      name: user.name,
+      avatar: user.avatar,
+      about: user.about,
+      phone: user.phone,
+      isGroup: false,
+      isOnline: true,
+      hasStatus: false,
     });
 
     // Fetch chats and all users
     try {
       const [apiChats, apiUsers] = await Promise.all([
         api.getChats(),
-        api.getUsers().catch(() => [])
+        api.getUsers().catch(() => [] as ApiUser[]),
       ]);
       const newContacts: Contact[] = [];
       const newChats: Chat[] = [];
 
-      // Add all users as contacts
+      // All users become potential contacts
       for (const u of apiUsers) {
         newContacts.push({
           id: u.id,
@@ -196,7 +225,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const contact = buildContactFromChat(ac, user.id);
           if (contact) newContacts.push(contact);
         } else {
-          // If it's a direct chat, the user is already in newContacts, but we might want to update online status
           const other = ac.members.find(m => m.id !== user.id);
           if (other) {
             const existing = newContacts.find(c => c.id === other.id);
@@ -240,7 +268,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Message status update
     socket.on('message:status', ({ messageId, status }: { messageId: string; status: string }) => {
-      setMessages(ms => ms.map(m => m.id === messageId ? { ...m, status: status as Message['status'] } : m));
+      setMessages(ms => ms.map(m =>
+        m.id === messageId ? { ...m, status: status as Message['status'] } : m
+      ));
     });
 
     // Reaction / edit
@@ -254,7 +284,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     // Poll vote update
-    socket.on('poll:updated', ({ messageId, options }: { messageId: string; options: Message['poll'] extends undefined ? never : NonNullable<Message['poll']>['options'] }) => {
+    socket.on('poll:updated', ({ messageId, options }: { messageId: string; options: NonNullable<Message['poll']>['options'] }) => {
       setMessages(ms => ms.map(m =>
         m.id === messageId && m.poll ? { ...m, poll: { ...m.poll, options } } : m
       ));
@@ -273,12 +303,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Presence
     socket.on('user:status', ({ userId, isOnline }: { userId: string; isOnline: boolean }) => {
       setContacts(cs => cs.map(c => c.id === userId ? { ...c, isOnline } : c));
-      updateContactsCache(contacts.map(c => c.id === userId ? { ...c, isOnline } : c));
     });
 
-    // Incoming call
+    // Incoming 1-to-1 call
     socket.on('call:incoming', (info: IncomingCallInfo) => {
       setIncomingCall(info);
+    });
+
+    // Incoming group call
+    socket.on('group-call:incoming', (info: IncomingGroupCallInfo) => {
+      setIncomingGroupCall(info);
     });
 
     return () => {
@@ -301,7 +335,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadedChatIds.current.clear();
   }, []);
 
-  // ─── Toggle theme ─────────────────────────────────────────────────────────
   const toggleTheme = useCallback(() => setTheme(t => t === 'dark' ? 'light' : 'dark'), []);
 
   // ─── Set active chat (fetch messages on demand) ──────────────────────────
@@ -323,7 +356,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ─── Socket emit helpers ──────────────────────────────────────────────────
   function emit(event: string, data: object) {
     getSocket()?.emit(event, data);
   }
@@ -333,8 +365,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     emit('message:send', { chatId, type: 'text', text, replyToId });
   }, []);
 
-  const sendVoiceMessage = useCallback((chatId: string, duration: number, waveform: number[], replyToId?: string) => {
-    emit('message:send', { chatId, type: 'voice', voice: { duration, waveform, speed: 1 }, replyToId });
+  const sendVoiceMessage = useCallback((
+    chatId: string,
+    duration: number,
+    waveform: number[],
+    url: string,
+    replyToId?: string
+  ) => {
+    emit('message:send', {
+      chatId,
+      type: 'voice',
+      voice: { duration, waveform, url, speed: 1 },
+      replyToId,
+    });
   }, []);
 
   const sendImageMessage = useCallback((chatId: string, url: string, caption?: string, replyToId?: string) => {
@@ -355,7 +398,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setVoiceSpeed = useCallback((messageId: string, speed: 1 | 1.5 | 2) => {
-    setMessages(ms => ms.map(m => m.id === messageId && m.voice ? { ...m, voice: { ...m.voice, speed } } : m));
+    setMessages(ms => ms.map(m =>
+      m.id === messageId && m.voice ? { ...m, voice: { ...m.voice, speed } } : m
+    ));
   }, []);
 
   const markChatRead = useCallback((chatId: string) => {
@@ -387,7 +432,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ─── Start a new direct chat ──────────────────────────────────────────────
   const startDirectChat = useCallback(async (targetUserId: string): Promise<string> => {
-    const existing = chats.find(c => !contacts.find(ct => ct.id === c.contactId)?.isGroup && c.contactId === targetUserId);
+    const existing = chats.find(c =>
+      !contacts.find(ct => ct.id === c.contactId)?.isGroup && c.contactId === targetUserId
+    );
     if (existing) return existing.id;
 
     const ac = await api.startDirectChat(targetUserId);
@@ -399,20 +446,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateContactsCache([contact]);
     }
     setChats(cs => cs.some(c => c.id === chat.id) ? cs : [...cs, chat]);
-
-    // Join socket room
     getSocket()?.emit('chat:join', { chatId: ac.id });
-
     return ac.id;
   }, [chats, contacts, currentUser]);
 
   // ─── Calls ────────────────────────────────────────────────────────────────
   const dismissIncomingCall = useCallback(() => setIncomingCall(null), []);
+  const dismissIncomingGroupCall = useCallback(() => setIncomingGroupCall(null), []);
 
   // ─── Memoized value ───────────────────────────────────────────────────────
   const value = useMemo<AppState>(() => ({
     authed, theme, chats, contacts, messages, activeChatId,
-    searchQuery, networkOffline, currentUser, typingUsers, incomingCall,
+    searchQuery, networkOffline, currentUser, typingUsers,
+    incomingCall, incomingGroupCall,
     loginWithToken, logout, toggleTheme,
     setActiveChat, setSearchQuery,
     toggleNetwork: () => setNetworkOffline(v => !v),
@@ -420,16 +466,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     votePoll, toggleReaction, setVoiceSpeed,
     markChatRead, deleteMessage,
     togglePin, toggleMute, archiveChat,
-    startDirectChat, dismissIncomingCall,
+    startDirectChat,
+    dismissIncomingCall, dismissIncomingGroupCall,
   }), [
     authed, theme, chats, contacts, messages, activeChatId,
-    searchQuery, networkOffline, currentUser, typingUsers, incomingCall,
+    searchQuery, networkOffline, currentUser, typingUsers,
+    incomingCall, incomingGroupCall,
     loginWithToken, logout, toggleTheme, setActiveChat,
     sendMessage, sendVoiceMessage, sendImageMessage, sendPoll,
     votePoll, toggleReaction, setVoiceSpeed,
     markChatRead, deleteMessage,
     togglePin, toggleMute, archiveChat,
-    startDirectChat, dismissIncomingCall,
+    startDirectChat, dismissIncomingCall, dismissIncomingGroupCall,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -441,11 +489,9 @@ export function useApp() {
   return ctx;
 }
 
-// Dynamic current user export (used in some components)
 export function CURRENT_USER() {
   const { currentUser } = useContext(Ctx)!;
   return currentUser ?? { id: 'me', name: 'أنا', avatar: '', about: '', phone: '', email: '' };
 }
 
-// For non-hook usage (e.g. utils)
 export { getCurrentUserId };
