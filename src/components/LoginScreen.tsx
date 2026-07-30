@@ -4,7 +4,7 @@ import { CopyrightFooter } from './ui';
 import { Eye, EyeOff } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 
-type View = 'signin' | 'signup' | 'forgot' | 'verify-signup' | 'verify-forgot';
+type View = 'signin' | 'signup' | 'forgot' | 'verify-signup' | 'verify-forgot-code' | 'reset-password';
 
 interface Props {
   onLogin: (token: string, user: any) => void;
@@ -15,8 +15,10 @@ export function LoginScreen({ onLogin }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
   const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
@@ -64,7 +66,7 @@ export function LoginScreen({ onLogin }: Props) {
       } else if (view === 'forgot') {
         await api.forgotPassword({ email });
         setCode(['', '', '', '', '', '']);
-        setView('verify-forgot');
+        setView('verify-forgot-code');
       }
     } catch (err: any) {
       alert(err.message || 'حدث خطأ غير معروف');
@@ -76,20 +78,39 @@ export function LoginScreen({ onLogin }: Props) {
   const submitOtp = async () => {
     const fullCode = code.join('');
     if (fullCode.length < 6) return alert('أدخل الرمز كاملاً');
+    
+    if (view === 'verify-forgot-code') {
+      setView('reset-password');
+      return;
+    }
+
     setLoading(true);
     try {
       if (view === 'verify-signup') {
         const { token, user } = await api.signupVerify({ email, code: fullCode });
         localStorage.setItem('zizo_token', token);
         onLogin(token, user);
-      } else if (view === 'verify-forgot') {
-        if (!password) return alert('أدخل كلمة المرور الجديدة');
-        const res = await api.forgotPasswordVerify({ email, code: fullCode, newPassword: password });
-        alert(res.message);
-        setView('signin');
       }
     } catch (err: any) {
       alert(err.message || 'رمز التحقق غير صحيح');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) return alert('كلمتا المرور غير متطابقتين');
+    setLoading(true);
+    try {
+      const fullCode = code.join('');
+      const res = await api.forgotPasswordVerify({ email, code: fullCode, newPassword: password });
+      alert(res.message);
+      setView('signin');
+      setPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      alert(err.message || 'فشلت عملية تغيير كلمة المرور');
     } finally {
       setLoading(false);
     }
@@ -154,12 +175,16 @@ export function LoginScreen({ onLogin }: Props) {
             <h2 className="text-[#41525d] text-2xl font-light mb-6 text-center">استعادة كلمة المرور</h2>
           )}
           
-          {(view === 'verify-signup' || view === 'verify-forgot') && (
+          {(view === 'verify-signup' || view === 'verify-forgot-code') && (
             <div className="text-center mb-8">
               <h2 className="text-[#41525d] text-2xl font-light mb-2">أدخل رمز التحقق</h2>
               <p className="text-[#667781]">تم إرسال رمز مكوّن من 6 أرقام إلى</p>
               <p className="text-[#00a884] font-medium mt-1">{email}</p>
             </div>
+          )}
+
+          {view === 'reset-password' && (
+            <h2 className="text-[#41525d] text-2xl font-light mb-6 text-center">تعيين كلمة المرور الجديدة</h2>
           )}
 
           {(view === 'signin' || view === 'signup' || view === 'forgot') && (
@@ -216,7 +241,7 @@ export function LoginScreen({ onLogin }: Props) {
             </form>
           )}
 
-          {(view === 'verify-signup' || view === 'verify-forgot') && (
+          {(view === 'verify-signup' || view === 'verify-forgot-code') && (
             <div className="flex flex-col items-center">
               <div className="flex gap-2 justify-center mb-6" dir="ltr">
                 {code.map((digit, i) => (
@@ -235,29 +260,9 @@ export function LoginScreen({ onLogin }: Props) {
                 ))}
               </div>
 
-              {view === 'verify-forgot' && (
-                <div className="w-full relative mb-6">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="أدخل كلمة المرور الجديدة"
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-[#f0f2f5] text-[#111b21] rounded-lg px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-[#00a884] transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-3.5 text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              )}
-
               <button
                 onClick={submitOtp}
-                disabled={loading || code.join('').length < 6 || (view === 'verify-forgot' && !password)}
+                disabled={loading || code.join('').length < 6}
                 className="w-full max-w-sm bg-[#00a884] hover:bg-[#017561] text-white font-medium py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-6 shadow-sm"
               >
                 {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'تأكيد الرمز'}
@@ -265,12 +270,60 @@ export function LoginScreen({ onLogin }: Props) {
             </div>
           )}
 
+          {view === 'reset-password' && (
+            <form onSubmit={submitResetPassword} className="flex flex-col gap-4">
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="أدخل كلمة المرور الجديدة"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full bg-[#f0f2f5] text-[#111b21] rounded-lg px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-[#00a884] transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-3 top-3.5 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="تأكيد كلمة المرور"
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full bg-[#f0f2f5] text-[#111b21] rounded-lg px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-[#00a884] transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute left-3 top-3.5 text-gray-500 hover:text-gray-700"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-4 w-full bg-[#00a884] hover:bg-[#017561] text-white font-medium py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'حفظ كلمة المرور'}
+              </button>
+            </form>
+          )}
+
           <div className="mt-6 flex flex-col gap-2 text-sm text-center text-[#667781]">
             {view === 'signin' && (
               <button onClick={() => setView('forgot')} className="hover:text-[#00a884] transition-colors">هل نسيت كلمة المرور؟</button>
             )}
-            {(view === 'forgot' || view === 'verify-signup' || view === 'verify-forgot') && (
-              <button onClick={() => { setView('signin'); setCode(['', '', '', '', '', '']); }} className="hover:text-[#00a884] transition-colors">
+            {(view === 'forgot' || view === 'verify-signup' || view === 'verify-forgot-code' || view === 'reset-password') && (
+              <button onClick={() => { setView('signin'); setCode(['', '', '', '', '', '']); setPassword(''); }} className="hover:text-[#00a884] transition-colors">
                 العودة لتسجيل الدخول
               </button>
             )}
