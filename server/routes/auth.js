@@ -80,12 +80,12 @@ router.post('/signup', async (req, res) => {
       meta: { name, password: hashedPassword }
     });
 
-    transporter.sendMail({
+    await transporter.sendMail({
       from: `"ZizoChat" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: '🔐 رمز التحقق - ZizoChat',
       html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:24px;background:#f0f2f5;border-radius:12px;"><h2 style="color:#128C7E;text-align:center;">ZizoChat</h2><p>رمز التحقق لإنشاء حسابك هو:</p><div style="text-align:center;margin:24px 0;"><span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#075E54;">${code}</span></div><p style="color:#888;font-size:13px;">الرمز صالح لمدة 10 دقائق فقط.</p><hr/><p style="color:#aaa;font-size:11px;text-align:center;">حقوق الطبع للمهندس عزالدين الرهمي ورقم الهاتف +967777320031</p></div>`
-    }).catch(console.error);
+    });
 
     res.json({ success: true, message: 'تم إرسال رمز التحقق إلى بريدك.' });
   } catch (err) {
@@ -143,12 +143,12 @@ router.post('/forgot-password', async (req, res) => {
     await OTP.findOneAndDelete({ email });
     await OTP.create({ email, code, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
 
-    transporter.sendMail({
+    await transporter.sendMail({
       from: `"ZizoChat" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: '🔐 رمز التحقق - ZizoChat',
       html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:24px;background:#f0f2f5;border-radius:12px;"><h2 style="color:#128C7E;text-align:center;">ZizoChat</h2><p>رمز التحقق لاستعادة كلمة المرور هو:</p><div style="text-align:center;margin:24px 0;"><span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#075E54;">${code}</span></div><p style="color:#888;font-size:13px;">الرمز صالح لمدة 10 دقائق فقط.</p><hr/><p style="color:#aaa;font-size:11px;text-align:center;">حقوق الطبع للمهندس عزالدين الرهمي ورقم الهاتف +967777320031</p></div>`
-    }).catch(console.error);
+    });
 
     res.json({ success: true });
   } catch (err) {
