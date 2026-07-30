@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import { useApp } from '@/store';
 import type { Message } from '@/types';
 import { uid } from '@/utils';
-import { Smile, Paperclip, Mic, Send, X, Image, BarChart2 } from 'lucide-react';
+import { Smile, Paperclip, Mic, Send, X, Image, BarChart2, Loader2 } from 'lucide-react';
+import { api } from '@/services/api';
 
 const EMOJIS = ['😀','😂','😍','😎','🥰','😭','😡','🤔','👍','👎','❤️','🔥','🎉','😢','🙏','💪','👏','🤣','😊','😒'];
 
@@ -24,6 +25,8 @@ export function MessageInput({
   const [recordTime, setRecordTime] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Poll state
   const [pollQuestion, setPollQuestion] = useState('');
@@ -64,13 +67,21 @@ export function MessageInput({
     setRecordTime(0);
   };
 
-  const handleImageUrl = () => {
-    const url = prompt('أدخل رابط الصورة:');
-    if (url) {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await api.uploadFile(file);
       sendImageMessage(chatId, url, undefined, replyTo?.id);
       onCancelReply();
+    } catch (err: any) {
+      alert('فشل الرفع: ' + err.message);
+    } finally {
+      setUploading(false);
+      setShowAttach(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-    setShowAttach(false);
   };
 
   const submitPoll = () => {
@@ -117,14 +128,16 @@ export function MessageInput({
       {/* Attach menu */}
       {showAttach && (
         <div className="px-4 py-2 flex gap-3 border-b border-wa-border dark:border-wa-borderDark">
+          <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
           <button
-            onClick={handleImageUrl}
-            className="flex flex-col items-center gap-1 text-xs text-wa-secondary dark:text-wa-secondaryDark hover:text-wa-light transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex flex-col items-center gap-1 text-xs text-wa-secondary dark:text-wa-secondaryDark hover:text-wa-light transition-colors disabled:opacity-50"
           >
             <div className="w-10 h-10 rounded-full bg-wa-hover dark:bg-wa-hoverDark flex items-center justify-center">
-              <Image className="w-5 h-5" />
+              {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Image className="w-5 h-5" />}
             </div>
-            صورة
+            صورة/ملف
           </button>
           <button
             onClick={() => { setShowPoll(true); setShowAttach(false); }}

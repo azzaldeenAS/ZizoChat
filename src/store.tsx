@@ -168,15 +168,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
       phone: user.phone, isGroup: false, isOnline: true, hasStatus: false,
     });
 
-    // Fetch chats
+    // Fetch chats and all users
     try {
-      const apiChats = await api.getChats();
+      const [apiChats, apiUsers] = await Promise.all([
+        api.getChats(),
+        api.getUsers().catch(() => [])
+      ]);
       const newContacts: Contact[] = [];
       const newChats: Chat[] = [];
 
+      // Add all users as contacts
+      for (const u of apiUsers) {
+        newContacts.push({
+          id: u.id,
+          name: u.name,
+          avatar: u.avatar || `https://i.pravatar.cc/200?u=${u.id}`,
+          about: u.about || '',
+          phone: u.phone || '',
+          isGroup: false,
+          isOnline: !!u.isOnline,
+          hasStatus: false,
+        });
+      }
+
       for (const ac of apiChats) {
-        const contact = buildContactFromChat(ac, user.id);
-        if (contact) newContacts.push(contact);
+        if (ac.isGroup) {
+          const contact = buildContactFromChat(ac, user.id);
+          if (contact) newContacts.push(contact);
+        } else {
+          // If it's a direct chat, the user is already in newContacts, but we might want to update online status
+          const other = ac.members.find(m => m.id !== user.id);
+          if (other) {
+            const existing = newContacts.find(c => c.id === other.id);
+            if (!existing) {
+              const contact = buildContactFromChat(ac, user.id);
+              if (contact) newContacts.push(contact);
+            }
+          }
+        }
         newChats.push(buildChatFromApi(ac, user.id));
       }
 
@@ -184,7 +213,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setContacts(newContacts);
       setChats(newChats);
     } catch (err) {
-      console.warn('Failed to load chats:', err);
+      console.warn('Failed to load chats/users:', err);
     }
 
     setAuthed(true);

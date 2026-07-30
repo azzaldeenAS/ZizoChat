@@ -11,6 +11,17 @@ router.get('/me', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/users
+router.get('/', auth, async (req, res) => {
+  try {
+    const users = await User.find({ _id: { $ne: req.user.id } }).select('name email avatar about phone isOnline lastSeen');
+    res.json(users.map(u => ({
+      id: u._id, name: u.name, email: u.email, avatar: u.avatar,
+      about: u.about, phone: u.phone, isOnline: u.isOnline, lastSeen: u.lastSeen
+    })));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // PATCH /api/users/me — update profile
 router.patch('/me', auth, async (req, res) => {
   try {

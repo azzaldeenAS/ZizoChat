@@ -117,10 +117,7 @@ export function CallModal({ open, type, contact, onClose, incoming = false, inco
     (async () => {
       try {
         const constraints = { audio: true, video: type === 'video' };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints).catch(() => {
-          // Fallback: no media (demo mode)
-          return new MediaStream();
-        });
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         localStreamRef.current = stream;
 
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
@@ -149,11 +146,12 @@ export function CallModal({ open, type, contact, onClose, incoming = false, inco
           setStatus('connected');
           startTimer();
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Call setup error:', err);
-        // Demo fallback: simulate connected
-        setStatus('connected');
-        startTimer();
+        alert('تعذر الوصول إلى الكاميرا أو الميكروفون: ' + err.message);
+        setStatus('ended');
+        cleanup();
+        onClose();
       }
     })();
 

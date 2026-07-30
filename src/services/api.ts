@@ -43,6 +43,20 @@ export const api = {
   updateMe: (data: Partial<ApiUser>) =>
     request<ApiUser>('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
   searchUsers: (q: string) => request<ApiUser[]>(`/users/search?q=${encodeURIComponent(q)}`),
+  getUsers: () => request<ApiUser[]>('/users'),
+
+  uploadFile: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data.url as string;
+  },
 
   // Chats
   getChats: () => request<ApiChat[]>('/chats'),

@@ -13,18 +13,21 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuBtnRef = useRef<HTMLButtonElement>(null);
 
-  const filtered = chats
-    .filter((c) => !c.archived)
-    .filter((c) => {
-      const ct = getContact(c.contactId);
-      if (!ct) return false;
+  const filtered = contacts
+    .filter((ct) => {
+      const chat = chats.find(c => c.contactId === ct.id);
+      if (chat?.archived) return false;
       if (!searchQuery) return true;
       return ct.name.toLowerCase().includes(searchQuery.toLowerCase());
     })
     .sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      const la = lastMessageOf(a.id, messages)?.timestamp ?? 0;
-      const lb = lastMessageOf(b.id, messages)?.timestamp ?? 0;
+      const chatA = chats.find(c => c.contactId === a.id);
+      const chatB = chats.find(c => c.contactId === b.id);
+      if (chatA?.pinned !== chatB?.pinned) return chatA?.pinned ? -1 : 1;
+      const la = chatA ? (lastMessageOf(chatA.id, messages)?.timestamp ?? 0) : 0;
+      const lb = chatB ? (lastMessageOf(chatB.id, messages)?.timestamp ?? 0) : 0;
+      // If neither has messages, sort by name
+      if (la === 0 && lb === 0) return a.name.localeCompare(b.name, 'ar');
       return lb - la;
     });
 
@@ -86,17 +89,26 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
             لا توجد محادثات مطابقة لبحثك
           </div>
         )}
-        {filtered.map((chat) => {
-          const ct = getContact(chat.contactId);
-          if (!ct) return null;
-          const last = lastMessageOf(chat.id, messages);
-          const active = chat.id === activeChatId;
+        {filtered.map((ct) => {
+          const chat = chats.find(c => c.contactId === ct.id);
+          const chatId = chat ? chat.id : ct.id; // temporary id if no chat exists
+          const last = chat ? lastMessageOf(chat.id, messages) : null;
+          const active = chat ? chat.id === activeChatId : false;
           const preview = formatLastPreview(last);
           const senderPrefix = last && ct.isGroup && last.senderId !== 'me' ? `${getContact(last.senderId)?.name ?? ''}: ` : '';
+          
           return (
             <div
-              key={chat.id}
-              onClick={() => setActiveChat(chat.id)}
+              key={chatId}
+              onClick={async () => {
+                if (chat) {
+                  setActiveChat(chat.id);
+                } else {
+                  // User has no chat, start one
+                  const newChatId = await startDirectChat(ct.id);
+                  setActiveChat(newChatId);
+                }
+              }}
               className={cn(
                 'flex items-center gap-3 px-3 py-3 cursor-pointer border-b border-wa-border/40 dark:border-wa-borderDark/40 transition-colors',
                 active ? 'bg-wa-active dark:bg-wa-activeDark' : 'hover:bg-wa-hover dark:hover:bg-wa-hoverDark'
@@ -120,7 +132,7 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm text-wa-text dark:text-wa-textDark truncate">{ct.name}</span>
-                  <span className={cn('text-[11px] shrink-0', chat.unreadCount > 0 ? 'text-wa-light font-semibold' : 'text-wa-secondary dark:text-wa-secondaryDark')}>
+                  <span className={cn('text-[11px] shrink-0', chat?.unreadCount ? 'text-wa-light font-semibold' : 'text-wa-secondary dark:text-wa-secondaryDark')}>
                     {last?.time ?? ''}
                   </span>
                 </div>
@@ -131,12 +143,12 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
                       last.status === 'delivered' ? <CheckCheck className="w-4 h-4 text-wa-secondary dark:text-wa-secondaryDark shrink-0" /> :
                       <Check className="w-4 h-4 text-wa-secondary dark:text-wa-secondaryDark shrink-0" />
                     )}
-                    <span className="truncate">{senderPrefix}{preview}</span>
+                    <span className="truncate">{senderPrefix}{preview || (ct.isGroup ? 'مجموعة جديدة' : 'ابدأ الدردشة الآن')}</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {chat.muted && <BellOff className="w-3.5 h-3.5 text-wa-secondary dark:text-wa-secondaryDark" />}
-                    {chat.pinned && <Pin className="w-3.5 h-3.5 text-wa-secondary dark:text-wa-secondaryDark" />}
-                    {chat.unreadCount > 0 && (
+                    {chat?.muted && <BellOff className="w-3.5 h-3.5 text-wa-secondary dark:text-wa-secondaryDark" />}
+                    {chat?.pinned && <Pin className="w-3.5 h-3.5 text-wa-secondary dark:text-wa-secondaryDark" />}
+                    {chat && chat.unreadCount > 0 && (
                       <span className="min-w-[18px] h-[18px] px-1 bg-wa-light text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
                         {chat.unreadCount}
                       </span>
