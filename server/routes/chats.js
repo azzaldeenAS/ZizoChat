@@ -75,6 +75,98 @@ router.post('/direct', auth, async (req, res) => {
   }
 });
 
+// GET /api/chats/public — list all public rooms
+router.get('/public', auth, async (req, res) => {
+  try {
+    const rooms = await Chat.find({ isPublic: true, isGroup: true })
+      .populate('members', 'name avatar isOnline')
+      .populate('createdBy', 'name')
+      .sort({ updatedAt: -1 });
+
+    const result = await Promise.all(rooms.map(async (room) => {
+      const lastMsg = await Message.findOne({ chatId: room._id }).sort({ timestamp: -1 }).lean();
+      return {
+        id: room._id.toString(),
+        isGroup: true,
+        isPublic: true,
+        name: room.name,
+        description: room.description || '',
+        avatar: room.avatar || '',
+        memberCount: room.members.length,
+        isMember: room.members.some(m => m._id.toString() === req.user.id),
+        members: room.members.map(m => ({
+          id: m._id.toString(), name: m.name, avatar: m.avatar,
+          isOnline: m.isOnline,
+          isAdmin: room.admins.map(a => a.toString()).includes(m._id.toString()),
+        })),
+        pinned: room.pinned.map(p => p.toString()).includes(req.user.id),
+        muted: room.muted.map(p => p.toString()).includes(req.user.id),
+        archived: room.archived.map(p => p.toString()).includes(req.user.id),
+        lastMessage: lastMsg ? {
+          id: lastMsg._id.toString(), type: lastMsg.type,
+          text: lastMsg.text, senderId: lastMsg.senderId.toString(),
+          timestamp: lastMsg.timestamp, status: lastMsg.status,
+        } : null,
+      };
+    }));
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/chats/public — create a public room
+router.post('/public', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, description } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'اسم الغرفة مطلوب' });
+
+    const room = await Chat.create({
+      isGroup: true, isPublic: true,
+      name: name.trim(), description: description?.trim() || '',
+      members: [userId], createdBy: userId, admins: [userId],
+    });
+    await room.populate('members', 'name avatar isOnline lastSeen');
+
+    res.json({
+      id: room._id.toString(), isGroup: true, isPublic: true,
+      name: room.name, description: room.description, avatar: '',
+      memberCount: 1, isMember: true,
+      members: room.members.map(m => ({
+        id: m._id.toString(), name: m.name, avatar: m.avatar,
+        isOnline: m.isOnline, isAdmin: true,
+      })),
+      pinned: false, muted: false, archived: false, lastMessage: null,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/chats/public/:id/join — join a public room
+router.post('/public/:id/join', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const room = await Chat.findOne({ _id: req.params.id, isPublic: true })
+      .populate('members', 'name avatar isOnline lastSeen about phone');
+    if (!room) return res.status(404).json({ error: 'الغرفة غير موجودة' });
+
+    if (!room.members.some(m => m._id.toString() === userId)) {
+      await Chat.findByIdAndUpdate(room._id, { $addToSet: { members: userId } });
+      await room.populate('members', 'name avatar isOnline lastSeen about phone');
+    }
+
+    res.json({
+      id: room._id.toString(), isGroup: true, isPublic: true,
+      name: room.name, description: room.description || '', avatar: room.avatar || '',
+      memberCount: room.members.length, isMember: true,
+      members: room.members.map(m => ({
+        id: m._id.toString(), name: m.name, avatar: m.avatar,
+        isOnline: m.isOnline,
+        isAdmin: room.admins.map(a => a.toString()).includes(m._id.toString()),
+      })),
+      pinned: false, muted: false, archived: false, lastMessage: null,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // POST /api/chats/group — create a group chat
 router.post('/group', auth, async (req, res) => {
   try {

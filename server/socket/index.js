@@ -58,8 +58,8 @@ module.exports = function setupSocket(server) {
     await User.findByIdAndUpdate(userId, { isOnline: true });
     io.emit('user:status', { userId, isOnline: true });
 
-    // Join all chat rooms the user belongs to
-    const chats = await Chat.find({ members: userId });
+    // Join all chat rooms the user belongs to (including public rooms)
+    const chats = await Chat.find({ $or: [{ members: userId }, { isPublic: true }] });
     chats.forEach(c => socket.join(c._id.toString()));
 
     // ─── Messaging ─────────────────────────────────────────────────────────────

@@ -68,6 +68,13 @@ export const api = {
   toggleMute: (chatId: string) => request<{ muted: boolean }>(`/chats/${chatId}/mute`, { method: 'PATCH' }),
   toggleArchive: (chatId: string) => request<{ archived: boolean }>(`/chats/${chatId}/archive`, { method: 'PATCH' }),
 
+  // Public Rooms
+  getPublicRooms: () => request<ApiPublicRoom[]>('/chats/public'),
+  createPublicRoom: (name: string, description: string) =>
+    request<ApiPublicRoom>('/chats/public', { method: 'POST', body: JSON.stringify({ name, description }) }),
+  joinPublicRoom: (roomId: string) =>
+    request<ApiPublicRoom>(`/chats/public/${roomId}/join`, { method: 'POST' }),
+
   // Messages
   getMessages: (chatId: string, before?: string) =>
     request<ApiMessage[]>(`/messages/${chatId}${before ? `?before=${before}` : ''}`),
@@ -92,6 +99,22 @@ export interface ApiChatMember {
   about?: string;
   phone?: string;
   isAdmin: boolean;
+}
+
+export interface ApiPublicRoom {
+  id: string;
+  isGroup: true;
+  isPublic: true;
+  name: string;
+  description: string;
+  avatar: string;
+  memberCount: number;
+  isMember: boolean;
+  members: ApiChatMember[];
+  pinned: boolean;
+  muted: boolean;
+  archived: boolean;
+  lastMessage?: { id: string; type: string; text?: string; senderId: string; timestamp: string; status: string } | null;
 }
 
 export interface ApiChat {

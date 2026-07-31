@@ -129,6 +129,9 @@ interface AppState {
   // Calls
   dismissIncomingCall: () => void;
   dismissIncomingGroupCall: () => void;
+  // Groups & Public Rooms
+  createGroup: (name: string, memberIds: string[]) => Promise<string>;
+  joinPublicRoom: (roomId: string) => Promise<string>;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -450,6 +453,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return ac.id;
   }, [chats, contacts, currentUser]);
 
+  // ─── Create Group ────────────────────────────────────────────────────────
+  const createGroup = useCallback(async (name: string, memberIds: string[]): Promise<string> => {
+    const ac = await api.createGroup(name, memberIds);
+    const contact = buildContactFromChat(ac, currentUser!.id);
+    const chat = buildChatFromApi(ac, currentUser!.id);
+    if (contact) {
+      setContacts(cs => cs.some(c => c.id === contact.id) ? cs : [...cs, contact]);
+      updateContactsCache([contact]);
+    }
+    setChats(cs => cs.some(c => c.id === chat.id) ? cs : [...cs, chat]);
+    getSocket()?.emit('chat:join', { chatId: ac.id });
+    return ac.id;
+  }, [currentUser]);
+
+  // ─── Join Public Room ─────────────────────────────────────────────────────
+  const joinPublicRoom = useCallback(async (roomId: string): Promise<string> => {
+    const ac = await api.joinPublicRoom(roomId);
+    const contact: Contact = {
+      id: ac.id,
+      name: ac.name || 'غرفة عامة',
+      avatar: ac.avatar || `https://i.pravatar.cc/200?u=room-${ac.id}`,
+      about: ac.description || `غرفة عامة - ${ac.memberCount} عضو`,
+      phone: '',
+      isGroup: true,
+      isOnline: false,
+      hasStatus: false,
+      members: ac.members.map(m => ({
+        id: m.id, name: m.name, avatar: m.avatar, isAdmin: m.isAdmin,
+        color: MEMBER_COLORS[hashStr(m.id) % MEMBER_COLORS.length],
+      })),
+    };
+    const chat: Chat = { id: ac.id, contactId: ac.id, pinned: false, muted: false, archived: false, unreadCount: 0 };
+    setContacts(cs => cs.some(c => c.id === contact.id) ? cs.map(c => c.id === contact.id ? contact : c) : [...cs, contact]);
+    updateContactsCache([contact]);
+    setChats(cs => cs.some(c => c.id === chat.id) ? cs : [...cs, chat]);
+    getSocket()?.emit('chat:join', { chatId: ac.id });
+    return ac.id;
+  }, []);
+
   // ─── Calls ────────────────────────────────────────────────────────────────
   const dismissIncomingCall = useCallback(() => setIncomingCall(null), []);
   const dismissIncomingGroupCall = useCallback(() => setIncomingGroupCall(null), []);
@@ -466,7 +508,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     votePoll, toggleReaction, setVoiceSpeed,
     markChatRead, deleteMessage,
     togglePin, toggleMute, archiveChat,
-    startDirectChat,
+    startDirectChat, createGroup, joinPublicRoom,
     dismissIncomingCall, dismissIncomingGroupCall,
   }), [
     authed, theme, chats, contacts, messages, activeChatId,
@@ -477,7 +519,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     votePoll, toggleReaction, setVoiceSpeed,
     markChatRead, deleteMessage,
     togglePin, toggleMute, archiveChat,
-    startDirectChat, dismissIncomingCall, dismissIncomingGroupCall,
+    startDirectChat, createGroup, joinPublicRoom,
+    dismissIncomingCall, dismissIncomingGroupCall,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
