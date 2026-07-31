@@ -56,7 +56,8 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
 
   const openMenu = () => {
     const r = menuBtnRef.current?.getBoundingClientRect();
-    if (r) setMenuPos({ x: r.left - 175, y: r.bottom + 6 });
+    // Menu clamps itself inside the viewport, so a rough anchor is enough
+    if (r) setMenuPos({ x: r.right - 210, y: r.bottom + 6 });
     setMenuOpen(true);
   };
 
@@ -80,8 +81,9 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
       ? `${getContact(last.senderId)?.name ?? ''}: ` : '';
 
     return (
-      <div
+      <button
         key={chatId}
+        type="button"
         onClick={async () => {
           if (chat) {
             setActiveChat(chat.id);
@@ -91,7 +93,8 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
           }
         }}
         className={cn(
-          'flex items-center gap-3 px-3 py-3 cursor-pointer border-b border-wa-border/40 dark:border-wa-borderDark/40 transition-colors',
+          'flex w-full items-center gap-3 border-b border-wa-border/40 px-3 py-3 text-start transition-colors dark:border-wa-borderDark/40',
+          'min-h-[68px] cursor-pointer active:bg-wa-active dark:active:bg-wa-activeDark',
           active ? 'bg-wa-active dark:bg-wa-activeDark' : 'hover:bg-wa-hover dark:hover:bg-wa-hoverDark'
         )}
       >
@@ -99,14 +102,14 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
           {ct.hasStatus ? (
             <div className="p-[2px] rounded-full bg-wa-light">
               <div className="p-[2px] rounded-full bg-wa-sidebar dark:bg-wa-sidebarDark">
-                <img src={ct.avatar} alt={ct.name} className="w-12 h-12 rounded-full object-cover" />
+                <img src={ct.avatar} alt={ct.name} className="h-11 w-11 rounded-full object-cover sm:h-12 sm:w-12" />
               </div>
             </div>
           ) : (
             <img
               src={ct.avatar || `https://i.pravatar.cc/200?u=${ct.id}`}
               alt={ct.name}
-              className="w-12 h-12 rounded-full object-cover"
+              className="h-11 w-11 rounded-full object-cover sm:h-12 sm:w-12"
             />
           )}
           {ct.isOnline && !ct.isGroup && (
@@ -150,49 +153,69 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
             </div>
           </div>
         </div>
-      </div>
+      </button>
     );
   };
 
   return (
     <>
-      <div className="h-full flex flex-col bg-wa-sidebar dark:bg-wa-sidebarDark border-l border-wa-border dark:border-wa-borderDark">
+      <div className="flex h-full w-full min-w-0 flex-col border-l border-wa-border bg-wa-sidebar dark:border-wa-borderDark dark:bg-wa-sidebarDark">
         {/* Network banner */}
         {networkOffline && (
-          <div className="bg-wa-yellow/90 text-black text-center py-1.5 text-xs font-medium flex items-center justify-center gap-2 animate-slide-up">
-            <WifiOff className="w-3.5 h-3.5" />
+          <div className="flex shrink-0 items-center justify-center gap-2 bg-wa-yellow/90 py-1.5 text-center text-xs font-medium text-black animate-slide-up">
+            <WifiOff className="h-3.5 w-3.5 shrink-0" />
             جاري الاتصال...
           </div>
         )}
 
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 h-16 bg-wa-header dark:bg-wa-headerDark shrink-0">
-          <button onClick={onOpenProfile} className="transition-transform hover:scale-105">
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 bg-wa-header px-3 pt-safe sm:h-16 sm:px-4 dark:bg-wa-headerDark">
+          <button
+            onClick={onOpenProfile}
+            aria-label="الملف الشخصي"
+            className="shrink-0 transition-transform hover:scale-105 active:scale-95"
+          >
             <img
               src={currentUser?.avatar || ''}
-              alt="my avatar"
-              className="w-9 h-9 rounded-full object-cover bg-wa-header"
+              alt="صورتي"
+              className="h-9 w-9 rounded-full bg-wa-header object-cover ring-1 ring-white/20"
             />
           </button>
-          <div className="flex items-center gap-1 text-white">
+          <div className="flex items-center gap-0.5 text-white sm:gap-1">
             <Tooltip label="حالات">
-              <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <CircleDashed className="w-5 h-5" />
+              <button
+                aria-label="حالات"
+                className="hidden rounded-full p-2 transition-colors hover:bg-white/10 active:bg-white/20 xs:block"
+              >
+                <CircleDashed className="h-5 w-5" />
               </button>
             </Tooltip>
             <Tooltip label="غرف عامة">
-              <button onClick={() => setShowPublicRooms(true)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <Globe className="w-5 h-5" />
+              <button
+                onClick={() => setShowPublicRooms(true)}
+                aria-label="غرف عامة"
+                className="rounded-full p-2 transition-colors hover:bg-white/10 active:bg-white/20"
+              >
+                <Globe className="h-5 w-5" />
               </button>
             </Tooltip>
             <Tooltip label="مجموعة جديدة">
-              <button onClick={() => setShowNewGroup(true)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <MessageSquarePlus className="w-5 h-5" />
+              <button
+                onClick={() => setShowNewGroup(true)}
+                aria-label="مجموعة جديدة"
+                className="rounded-full p-2 transition-colors hover:bg-white/10 active:bg-white/20"
+              >
+                <MessageSquarePlus className="h-5 w-5" />
               </button>
             </Tooltip>
             <Tooltip label="القائمة">
-              <button ref={menuBtnRef} onClick={openMenu} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <MoreVertical className="w-5 h-5" />
+              <button
+                ref={menuBtnRef}
+                onClick={openMenu}
+                aria-label="القائمة"
+                className="rounded-full p-2 transition-colors hover:bg-white/10 active:bg-white/20"
+              >
+                <MoreVertical className="h-5 w-5" />
               </button>
             </Tooltip>
           </div>
@@ -209,18 +232,23 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
         </Menu>
 
         {/* Search */}
-        <div className="px-3 py-2 bg-wa-sidebar dark:bg-wa-sidebarDark shrink-0">
-          <div className="flex items-center gap-3 bg-wa-panel dark:bg-wa-panelDark rounded-lg px-3 py-1.5">
-            <Search className="w-4 h-4 text-wa-secondary dark:text-wa-secondaryDark shrink-0" />
+        <div className="shrink-0 bg-wa-sidebar px-2 py-2 sm:px-3 dark:bg-wa-sidebarDark">
+          <div className="flex items-center gap-2 rounded-lg bg-wa-panel px-3 py-2 focus-within:ring-2 focus-within:ring-wa-light/60 sm:gap-3 sm:py-1.5 dark:bg-wa-panelDark">
+            <Search className="h-4 w-4 shrink-0 text-wa-secondary dark:text-wa-secondaryDark" />
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="ابحث أو ابدأ دردشة جديدة"
-              className="flex-1 bg-transparent text-sm text-wa-text dark:text-wa-textDark outline-none placeholder:text-wa-secondary dark:placeholder:text-wa-secondaryDark"
+              aria-label="بحث"
+              className="min-w-0 flex-1 bg-transparent text-sm text-wa-text outline-none placeholder:text-wa-secondary dark:text-wa-textDark dark:placeholder:text-wa-secondaryDark"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="text-wa-secondary dark:text-wa-secondaryDark hover:text-wa-text dark:hover:text-wa-textDark">
-                <X className="w-4 h-4" />
+              <button
+                onClick={() => setSearchQuery('')}
+                aria-label="مسح البحث"
+                className="shrink-0 text-wa-secondary hover:text-wa-text dark:text-wa-secondaryDark dark:hover:text-wa-textDark"
+              >
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -228,56 +256,30 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
 
         {/* Tabs */}
         <div className="flex shrink-0 border-b border-wa-border dark:border-wa-borderDark">
-          <button
+          <TabButton
+            active={tab === 'chats'}
             onClick={() => setTab('chats')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors border-b-2',
-              tab === 'chats'
-                ? 'border-wa-light text-wa-light'
-                : 'border-transparent text-wa-secondary dark:text-wa-secondaryDark hover:text-wa-text dark:hover:text-wa-textDark'
-            )}
-          >
-            <MessageSquarePlus className="w-4 h-4" />
-            المحادثات
-            {directContacts.length > 0 && (
-              <span className="text-[10px] bg-wa-panel dark:bg-wa-panelDark px-1.5 py-0.5 rounded-full">
-                {directContacts.length}
-              </span>
-            )}
-          </button>
-          <button
+            icon={<MessageSquarePlus className="h-4 w-4 shrink-0" />}
+            label="المحادثات"
+            count={directContacts.length}
+          />
+          <TabButton
+            active={tab === 'groups'}
             onClick={() => setTab('groups')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors border-b-2',
-              tab === 'groups'
-                ? 'border-wa-light text-wa-light'
-                : 'border-transparent text-wa-secondary dark:text-wa-secondaryDark hover:text-wa-text dark:hover:text-wa-textDark'
-            )}
-          >
-            <Users className="w-4 h-4" />
-            المجموعات
-            {groupContacts.length > 0 && (
-              <span className="text-[10px] bg-wa-panel dark:bg-wa-panelDark px-1.5 py-0.5 rounded-full">
-                {groupContacts.length}
-              </span>
-            )}
-          </button>
-          <button
+            icon={<Users className="h-4 w-4 shrink-0" />}
+            label="المجموعات"
+            count={groupContacts.length}
+          />
+          <TabButton
+            active={tab === 'public'}
             onClick={() => setShowPublicRooms(true)}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors border-b-2',
-              tab === 'public'
-                ? 'border-wa-light text-wa-light'
-                : 'border-transparent text-wa-secondary dark:text-wa-secondaryDark hover:text-wa-text dark:hover:text-wa-textDark'
-            )}
-          >
-            <Globe className="w-4 h-4" />
-            غرف عامة
-          </button>
+            icon={<Globe className="h-4 w-4 shrink-0" />}
+            label="غرف عامة"
+          />
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scroll-touch">
           {filtered.length === 0 && tab !== 'public' && (
             <div className="text-center text-sm text-wa-secondary dark:text-wa-secondaryDark py-10 px-4">
               {searchQuery
@@ -317,5 +319,41 @@ export function Sidebar({ onOpenProfile }: { onOpenProfile: () => void }) {
         />
       )}
     </>
+  );
+}
+
+// ─── Responsive tab ──────────────────────────────────────────────────────────
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'flex min-w-0 flex-1 items-center justify-center gap-1 border-b-2 px-1 py-3 text-[11px] font-medium transition-colors sm:gap-1.5 sm:py-2.5 sm:text-xs',
+        active
+          ? 'border-wa-light text-wa-light'
+          : 'border-transparent text-wa-secondary hover:text-wa-text dark:text-wa-secondaryDark dark:hover:text-wa-textDark',
+      )}
+    >
+      {icon}
+      <span className="truncate">{label}</span>
+      {!!count && (
+        <span className="shrink-0 rounded-full bg-wa-panel px-1.5 py-0.5 text-[10px] dark:bg-wa-panelDark">
+          {count}
+        </span>
+      )}
+    </button>
   );
 }

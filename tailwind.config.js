@@ -4,8 +4,13 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      screens: {
+        xs: '400px',
+        hoverable: { raw: '(hover: hover) and (pointer: fine)' },
+      },
       colors: {
         wa: {
+          green: '#00A884',
           dark: '#075E54',
           teal: '#128C7E',
           light: '#25D366',
@@ -47,6 +52,7 @@ export default {
         'slide-right': 'slideRight 0.22s ease-out',
         'slide-left': 'slideLeft 0.22s ease-out',
         'scale-in': 'scaleIn 0.16s ease-out',
+        'sheet-up': 'sheetUp 0.24s cubic-bezier(0.32, 0.72, 0, 1)',
         'pulse-ring': 'pulseRing 1.4s ease-out infinite',
         'wave': 'wave 1s ease-in-out infinite',
       },
@@ -56,6 +62,7 @@ export default {
         slideRight: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(0)' } },
         slideLeft: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(0)' } },
         scaleIn: { '0%': { opacity: '0', transform: 'scale(0.96)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+        sheetUp: { '0%': { opacity: '0', transform: 'translateY(100%)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
         pulseRing: { '0%': { boxShadow: '0 0 0 0 rgba(37,211,102,0.6)' }, '70%': { boxShadow: '0 0 0 8px rgba(37,211,102,0)' }, '100%': { boxShadow: '0 0 0 0 rgba(37,211,102,0)' } },
         wave: { '0%,100%': { transform: 'scaleY(0.4)' }, '50%': { transform: 'scaleY(1)' } },
       },

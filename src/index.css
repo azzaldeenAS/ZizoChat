@@ -10,10 +10,63 @@ html, body, #root {
   padding: 0;
 }
 
+/* Real viewport height on mobile browsers (dynamic toolbars) */
+@supports (height: 100dvh) {
+  html, body, #root {
+    height: 100dvh;
+  }
+}
+
+html {
+  background-color: #111b21;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Never let a long word or URL blow up a flex layout */
+* {
+  min-width: 0;
+}
+
+/* iOS zooms the page when focusing an input whose font-size is < 16px */
+@media (max-width: 767px) {
+  [data-app-shell] input,
+  [data-app-shell] textarea,
+  [data-app-shell] select {
+    font-size: 16px !important;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .inset-safe-bottom {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  }
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .tap-target {
+    min-width: 40px;
+    min-height: 40px;
+  }
 }
 
 .chat-bg-light {
@@ -51,7 +104,9 @@ body {
 }
 
 .wave-bar {
-  width: 3px;
+  flex: 1 1 0%;
+  min-width: 2px;
+  max-width: 3px;
   border-radius: 2px;
   background: currentColor;
 }

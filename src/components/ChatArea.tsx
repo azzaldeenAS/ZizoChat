@@ -43,47 +43,80 @@ export function ChatArea() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 px-4 h-16 bg-wa-header dark:bg-wa-headerDark shrink-0">
-        <button onClick={() => setActiveChat(null)} className="md:hidden text-white">
-          <ArrowRight className="w-5 h-5" />
+    <div className="flex h-full w-full min-w-0 flex-col">
+      {/* Header */}
+      <div className="flex h-14 shrink-0 items-center gap-2 bg-wa-header px-2 pt-safe sm:h-16 sm:gap-3 sm:px-4 dark:bg-wa-headerDark">
+        <button
+          onClick={() => setActiveChat(null)}
+          aria-label="رجوع"
+          className="-mr-1 shrink-0 rounded-full p-2 text-white transition-colors hover:bg-white/10 active:bg-white/20 md:hidden"
+        >
+          <ArrowRight className="h-5 w-5" />
         </button>
-        <button onClick={() => setShowInfo(true)} className="flex items-center gap-3 flex-1 min-w-0 text-right">
-          <img src={contact.avatar} alt={contact.name} className="w-10 h-10 rounded-full object-cover" />
+        <button
+          onClick={() => setShowInfo(true)}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 text-start transition-colors hover:bg-white/5 sm:gap-3"
+        >
+          <img
+            src={contact.avatar}
+            alt={contact.name}
+            className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/20 sm:h-10 sm:w-10"
+          />
           <div className="min-w-0">
-            <div className="text-white font-medium text-sm truncate flex items-center gap-1">
-              {contact.name}
-              {contact.isGroup && <Users className="w-3.5 h-3.5 opacity-70" />}
+            <div className="flex items-center gap-1 text-sm font-medium text-white">
+              <span className="truncate">{contact.name}</span>
+              {contact.isGroup && <Users className="h-3.5 w-3.5 shrink-0 opacity-70" />}
             </div>
-            <div className="text-white/70 text-xs truncate">
+            <div className="truncate text-xs text-white/70">
               {contact.isGroup
                 ? `${contact.members?.length ?? 0} أعضاء`
                 : contact.isOnline ? 'متصل الآن' : contact.lastSeen ?? ''}
             </div>
           </div>
         </button>
-        <div className="flex items-center gap-1 text-white">
-          <button onClick={() => setCallType('video')} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-            <Video className="w-5 h-5" />
+        <div className="flex shrink-0 items-center gap-0.5 text-white sm:gap-1">
+          <button
+            onClick={() => setCallType('video')}
+            aria-label="مكالمة فيديو"
+            className="rounded-full p-2 transition-colors hover:bg-white/10 active:bg-white/20"
+          >
+            <Video className="h-5 w-5" />
           </button>
-          <button onClick={() => setCallType('voice')} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-            <Phone className="w-5 h-5" />
+          <button
+            onClick={() => setCallType('voice')}
+            aria-label="مكالمة صوتية"
+            className="rounded-full p-2 transition-colors hover:bg-white/10 active:bg-white/20"
+          >
+            <Phone className="h-5 w-5" />
           </button>
-          <button className="p-2 rounded-full hover:bg-white/10 transition-colors hidden sm:block">
-            <Search className="w-5 h-5" />
+          <button
+            aria-label="بحث في المحادثة"
+            className="hidden rounded-full p-2 transition-colors hover:bg-white/10 lg:block"
+          >
+            <Search className="h-5 w-5" />
           </button>
-          <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
-            <MoreVertical className="w-5 h-5" />
+          <button
+            aria-label="خيارات"
+            className="hidden rounded-full p-2 transition-colors hover:bg-white/10 active:bg-white/20 xs:block"
+          >
+            <MoreVertical className="h-5 w-5" />
           </button>
         </div>
       </div>
 
-      <div ref={scrollRef} className={cn('flex-1 overflow-y-auto scrollbar-thin py-4', theme === 'dark' ? 'chat-bg-dark' : 'chat-bg-light')}>
-        <div className="mx-auto max-w-md bg-wa-yellow/95 text-black text-xs text-center py-2 px-4 rounded-lg shadow mb-4">
-          <Lock className="w-3 h-3 inline ml-1" />
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        className={cn(
+          'flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scroll-touch py-3 sm:py-4',
+          theme === 'dark' ? 'chat-bg-dark' : 'chat-bg-light',
+        )}
+      >
+        <div className="mx-3 mb-4 text-balance rounded-lg bg-wa-yellow/95 px-3 py-2 text-center text-[11px] text-black shadow sm:mx-auto sm:max-w-md sm:px-4 sm:text-xs">
+          <Lock className="ml-1 inline h-3 w-3" />
           الرسائل والمكالمات مشفرة تماماً بين الطرفين
         </div>
-        <div className="space-y-1">
+        <div className="mx-auto w-full max-w-5xl space-y-1">
           {msgs.map((m) => (
             <MessageBubble key={m.id} msg={m} isGroup={contact.isGroup} />
           ))}
@@ -101,19 +134,31 @@ export function ChatArea() {
 function EmptyState() {
   const { theme } = useApp();
   return (
-    <div className={cn('h-full flex flex-col items-center justify-center', theme === 'dark' ? 'chat-bg-dark' : 'chat-bg-light')}>
-      <div className="text-center max-w-sm px-6">
-        <div className="w-64 h-64 mx-auto mb-6 bg-wa-sidebar/80 dark:bg-wa-sidebarDark/80 rounded-full flex items-center justify-center shadow-lg">
-          <svg viewBox="0 0 24 24" className="w-32 h-32 text-wa-secondary dark:text-wa-secondaryDark" fill="currentColor">
+    <div
+      className={cn(
+        'flex h-full w-full flex-col items-center justify-center overflow-y-auto',
+        theme === 'dark' ? 'chat-bg-dark' : 'chat-bg-light',
+      )}
+    >
+      <div className="max-w-sm px-6 py-8 text-center">
+        <div className="mx-auto mb-5 flex h-36 w-36 items-center justify-center rounded-full bg-wa-sidebar/80 shadow-lg sm:mb-6 sm:h-52 sm:w-52 lg:h-64 lg:w-64 dark:bg-wa-sidebarDark/80">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="h-20 w-20 text-wa-secondary sm:h-28 sm:w-28 lg:h-32 lg:w-32 dark:text-wa-secondaryDark"
+            fill="currentColor"
+          >
             <path d="M12 2C6.48 2 2 6.48 2 12c0 1.77.46 3.43 1.27 4.87L2 22l5.13-1.27C8.57 21.54 10.23 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.66 0-3.22-.45-4.56-1.24l-.32-.2-3.05.76.76-3.05-.2-.32C3.45 15.22 3 13.66 3 12c0-4.96 4.04-9 9-9s9 4.04 9 9-4.04 9-9 9z" />
           </svg>
         </div>
-        <h2 className="text-xl font-light text-wa-text dark:text-wa-textDark mb-3">ZizoChat Web</h2>
-        <p className="text-sm text-wa-secondary dark:text-wa-secondaryDark leading-relaxed">
+        <h2 className="mb-3 text-balance text-lg font-light text-wa-text sm:text-xl dark:text-wa-textDark">
+          ZizoChat Web
+        </h2>
+        <p className="text-pretty text-sm leading-relaxed text-wa-secondary dark:text-wa-secondaryDark">
           اختر محادثة من القائمة لبدء الدردشة. رسائلك ومكالماتك مشفرة تماماً بين الطرفين.
         </p>
-        <div className="mt-6 text-xs text-wa-secondary dark:text-wa-secondaryDark flex items-center justify-center gap-1">
-          <Lock className="w-3 h-3" />
+        <div className="mt-5 flex items-center justify-center gap-1 text-xs text-wa-secondary sm:mt-6 dark:text-wa-secondaryDark">
+          <Lock className="h-3 w-3" />
           مشفّر من طرف إلى طرف
         </div>
       </div>
