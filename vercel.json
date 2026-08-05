@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://zizochat.onrender.com/api/$1"
+      "destination": "https://zizoc-nd61.onrender.com/api/$1"
     },
     {
       "source": "/socket.io/(.*)",
-      "destination": "https://zizochat.onrender.com/socket.io/$1"
+      "destination": "https://zizoc-nd61.onrender.com/socket.io/$1"
     }
   ]
 }

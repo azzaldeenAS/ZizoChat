@@ -1,4 +1,4 @@
-const BASE = '/api';
+const BASE = import.meta.env.VITE_SOCKET_URL ? `${import.meta.env.VITE_SOCKET_URL}/api` : '/api';
 
 function getToken() {
   return localStorage.getItem('zizo_token') ?? '';
